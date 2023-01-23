@@ -46,11 +46,3 @@ with model:
             nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
             nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters
             results = f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, nr_clusters=nr_clusters, normalization_type=normalization_type)
-
-with finish:
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        results.to_excel(writer,sheet_name='clustered_kw')
-    writer.save()
-    st.download_button(label="Pobierz swoje wyniki", data=buffer)
-
-st.table(results)

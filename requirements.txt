@@ -1,5 +1,5 @@
-streamlit
-scikit
+streamlit==1.17.0
+scikit-learn
 nltk
 math
 advertools

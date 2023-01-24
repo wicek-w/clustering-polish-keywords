@@ -1,9 +1,0 @@
-streamlit
-scikit
-nltk
-math
-advertools
-numpy
-io
-pystempel
-stempel

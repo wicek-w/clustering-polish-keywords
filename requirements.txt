@@ -1,0 +1,14 @@
+streamlit
+scikit
+nltk
+math
+advertools
+numpy
+io
+pystempel
+nltk.cluster
+sklearn.cluster
+sklearn.feature_extraction.text
+nltk.metrics.distance
+streamlit
+spacy

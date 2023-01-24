@@ -9,7 +9,7 @@ from nltk.metrics.distance import edit_distance as lev
 import streamlit as st
 import io
 import spacy
-# import nltk
+
 
 buffer = io.BytesIO()
 stemmer = StempelStemmer.default()

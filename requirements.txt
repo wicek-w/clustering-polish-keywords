@@ -3,9 +3,7 @@ nltk
 advertools
 numpy
 pystempel
-nltk.cluster
-sklearn.cluster
-sklearn.feature_extraction.text
-nltk.metrics.distance
+sklearn
+scikit-learn
 streamlit
 spacy

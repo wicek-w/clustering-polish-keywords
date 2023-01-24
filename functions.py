@@ -9,11 +9,13 @@ from nltk.metrics.distance import edit_distance as lev
 import streamlit as st
 import io
 import spacy
+# import nltk
 
 buffer = io.BytesIO()
 stemmer = StempelStemmer.default()
-stopwords = set(adv.stopwords['polish'])
+stopwords = (list(adv.stopwords['polish']))
 lemmatization_model = spacy.load("pl_core_news_sm")
+# nltk.download('punkt')
 
 def stemming_tokenizer(phrases):
     words = word_tokenize(phrases)
@@ -27,18 +29,18 @@ def lemmatization_tokenizer(phrases):
 
 def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2, sensivity = 0.2, distance_type="euclidean", normalization_type ="lemmatization"):
     keywords = list(filter(None, keywords))
-    tokenizer = stemming_tokenizer() if normalization_type == 'stemming' else lemmatization_tokenizer()
+    tokenizer = stemming_tokenizer if normalization_type == 'stemming' else lemmatization_tokenizer
 
     if clustering_type == "k-means Tfidf":
-        tfidf_vectorizer = TfidfVectorizer(max_df=0.2, max_features=10000, min_df=0.01, stop_words=stopwords,
-                                           tokenizer = tokenizer, ngram_range=(1, 3))
+        tfidf_vectorizer = TfidfVectorizer(max_df=0.2, max_features=10000, min_df=0.008, stop_words=stopwords,
+                                           tokenizer = tokenizer, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
         cluster = KMeans(n_clusters=nr_clusters,random_state=0).fit(tfidf).labels_.tolist()
         results = pd.DataFrame(sorted(zip(cluster, keywords)), columns=["cluster_id", "keyword"])
 
     elif clustering_type == "DBSCAN":
-        tfidf_vectorizer = TfidfVectorizer(max_df=0.2, max_features=10000, min_df=0.01, stop_words=stopwords,
-                                           use_idf=True, ngram_range=(1, 3))
+        tfidf_vectorizer = TfidfVectorizer(max_df=0.2, max_features=10000, min_df=0.008, stop_words=stopwords,
+                                           use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
         cluster = DBSCAN(eps = sensivity, min_samples = min_cluster, metric = distance_type).fit(tfidf).labels_.tolist()
         results = pd.DataFrame(sorted(zip(cluster, keywords)), columns=["cluster_id", "keyword"])

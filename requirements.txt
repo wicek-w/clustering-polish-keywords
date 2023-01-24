@@ -1,10 +1,7 @@
 streamlit==1.17.0
-scikit-learn
 nltk
-math
 advertools
 numpy
-io
 pystempel
 nltk.cluster
 sklearn.cluster

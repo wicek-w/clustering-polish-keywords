@@ -7,3 +7,9 @@ sklearn
 scikit-learn
 streamlit
 spacy
+transformers
+sentence-transformers
+sentencepiece
+torch
+torchvision
+xlsxwriter

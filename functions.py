@@ -87,9 +87,9 @@ def clustering_semantic_fast(keywords, cluster_accuracy = 80, min_cluster_size =
     clusters = util.community_detection(corpus_embeddings, min_community_size=min_cluster_size, threshold=cluster_accuracy)
 
     for nr, cluster in enumerate(clusters):
-        for kw in cluster[:]:
+        for id in cluster[:]:
             cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
-            corpus_sentences_list.append(kw)
+            corpus_sentences_list.append(keywords[id])
 
     results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
 
@@ -126,8 +126,8 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
     corpus_sentences_list =[]
     cluster_name_list = []
     model = SentenceTransformer(transformer)
-    corpus_embeddings = model.encode(keywords, batch_size=64, show_progress_bar=True, convert_to_tensor=True)
-    clusterer = AgglomerativeClustering(n_clusters=None, distance_threshold=0.3)
+    corpus_embeddings = model.encode(keywords, batch_size=256, show_progress_bar=True, convert_to_tensor=True)
+    clusterer = AgglomerativeClustering(n_clusters=None, distance_threshold=6)
     clusterer.fit(corpus_embeddings)
 
     clusters = clusterer.labels_
@@ -138,7 +138,7 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
 
         clustered_sentences[cluster_id].append(keywords[sentence_id])
 
-    for nr, cluster in enumerate(clustered_sentences):
+    for nr, cluster in clustered_sentences.items():
         for kw in cluster[:]:
             cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
             corpus_sentences_list.append(kw)

@@ -29,8 +29,8 @@ with model:
             st.write("To może chwile potrwać, ale uwierz warto!")
             clustering_type = st.selectbox("Wybierz metodę klasteryzacji: ",
                                            options=["-",
-                                                    "aglomeracyjne dla dużych liczby fraz (od kilku do 50 tysięcy)",
-                                                    "aglomeracyjne",
+                                                    "aglomeracyjna dla dużych liczby fraz (od kilku do 50 tysięcy)",
+                                                    "aglomeracyjna",
                                                     "k-means"],
                                            index = 0)
             model_type = st.selectbox("Choose a type of the algorithm to cluster your keywords",
@@ -38,7 +38,7 @@ with model:
                                                "sentence-transformers/stsb-roberta-base-v2", "Voicelab/sbert-large-cased-pl"],
                                       index = 0)
 
-            if clustering_type == 'aglomeracyjne':
+            if clustering_type == 'aglomeracyjna':
                 if st.button('Zaczynajmy!'):
                     f.clustering_semantic_agglomerative(kw_input,)
             elif clustering_type == 'k-means':

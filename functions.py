@@ -5,7 +5,7 @@ import advertools as adv
 from stempel import StempelStemmer
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from nltk.metrics.distance import edit_distance as lev
+from nltk.metrics.distance import edit_distance
 import streamlit as st
 from io import BytesIO
 import spacy
@@ -69,7 +69,7 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
         elif distance_type == "cosine":
             clusterer = KMeansClusterer(num_means=nr_clusters, distance=cosine_distance, repeats=5)
         else:
-            clusterer = KMeansClusterer(num_means=nr_clusters, distance=lev, repeats=5)
+            clusterer = KMeansClusterer(num_means=nr_clusters, distance=edit_distance, repeats=5)
 
         classified = clusterer.classify(bow)
         results = pd.DataFrame(sorted(zip(classified, keywords)), columns=["cluster_id", "keyword"])
@@ -128,6 +128,33 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
     model = SentenceTransformer(transformer)
     corpus_embeddings = model.encode(keywords, batch_size=256, show_progress_bar=True, convert_to_tensor=True)
     clusterer = AgglomerativeClustering(n_clusters=None, distance_threshold=6)
+    clusterer.fit(corpus_embeddings)
+
+    clusters = clusterer.labels_
+    clustered_sentences = {}
+    for sentence_id, cluster_id in enumerate(clusters):
+        if cluster_id not in clustered_sentences:
+            clustered_sentences[cluster_id] = []
+
+        clustered_sentences[cluster_id].append(keywords[sentence_id])
+
+    for nr, cluster in clustered_sentences.items():
+        for kw in cluster[:]:
+            cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
+            corpus_sentences_list.append(kw)
+
+    results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
+
+    excel_output(results)
+    st.table(results)
+    return 0
+
+def clustering_semantic_dbscan(keywords, transformer = 'sdadas/st-polish-paraphrase-from-distilroberta', sensivity = 0.2, min_cluster=2, distance_type='euclidean'):
+    corpus_sentences_list =[]
+    cluster_name_list = []
+    model = SentenceTransformer(transformer)
+    corpus_embeddings = model.encode(keywords, batch_size=256, show_progress_bar=True, convert_to_tensor=True)
+    clusterer = DBSCAN(eps = sensivity, min_samples = min_cluster, metric = distance_type)
     clusterer.fit(corpus_embeddings)
 
     clusters = clusterer.labels_

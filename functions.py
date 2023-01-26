@@ -3,7 +3,7 @@ from nltk.cluster import KMeansClusterer, GAAClusterer, euclidean_distance, cosi
 from nltk import word_tokenize
 import advertools as adv
 from stempel import StempelStemmer
-from sklearn.cluster import KMeans, DBSCAN
+from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.metrics.distance import edit_distance as lev
 import streamlit as st
@@ -28,20 +28,29 @@ def lemmatization_tokenizer(phrases):
     words = [word.lower().lemma_ for word in words]
     return words
 
+def excel_output(results) :
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        results.to_excel(writer, sheet_name='clustered_kw')
+    writer.save()
+    st.download_button(label="Pobierz swoje wyniki",
+                   data=buffer,
+                   file_name="clustered_keywords.xlsx",
+                   mime="application/vnd.ms-excel")
+    return 0
 def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2, sensivity = 0.2, distance_type="euclidean", normalization_type ="lemmatization"):
     keywords = list(filter(None, keywords))
     tokenizer = stemming_tokenizer if normalization_type == 'stemming' else lemmatization_tokenizer
 
     if clustering_type == "k-means Tfidf":
         tfidf_vectorizer = TfidfVectorizer(max_df=0.3, max_features=10000, min_df=0.01, stop_words=stopwords,
-                                           use_idf=True, ngram_range=(1, 2))
+                                           tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
         cluster = KMeans(n_clusters=nr_clusters,random_state=0).fit(tfidf).labels_.tolist()
         results = pd.DataFrame(sorted(zip(cluster, keywords)), columns=["cluster_id", "keyword"])
 
     elif clustering_type == "DBSCAN":
         tfidf_vectorizer = TfidfVectorizer(max_df=0.3, max_features=10000, min_df=0.01, stop_words=stopwords,
-                                           use_idf=True, ngram_range=(1, 2))
+                                           tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
         cluster = DBSCAN(eps = sensivity, min_samples = min_cluster, metric = distance_type).fit(tfidf).labels_.tolist()
         results = pd.DataFrame(sorted(zip(cluster, keywords)), columns=["cluster_id", "keyword"])
@@ -65,60 +74,77 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
         classified = clusterer.classify(bow)
         results = pd.DataFrame(sorted(zip(classified, keywords)), columns=["cluster_id", "keyword"])
 
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        results.to_excel(writer, sheet_name='clustered_kw')
-        writer.save()
-    st.download_button(label="Pobierz swoje wyniki",
-                       data=buffer,
-                       file_name="clustered_keywords.xlsx",
-                       mime="application/vnd.ms-excel")
+    excel_output(results)
     st.table(results)
+    return 0
 
-def clustering_semantic(keywords, cluster_accuracy = 80, min_cluster_size = 2):
-    # store the data
+def clustering_semantic_fast(keywords, cluster_accuracy = 80, min_cluster_size = 2, transformer = 'sdadas/st-polish-paraphrase-from-distilroberta'):
+    corpus_sentences_list =[]
     cluster_name_list = []
-    corpus_sentences_list = []
-    df_all = []
-
-    corpus_set = set(keywords)
-    corpus_set_all = corpus_set
-    cluster = True
-    transformer = "sdadas/st-polish-paraphrase-from-distilroberta"
     cluster_accuracy = cluster_accuracy / 100
     model = SentenceTransformer(transformer)
-    while cluster:
-        corpus_sentences = list(corpus_set)
-        check_len = len(corpus_sentences)
+    corpus_embeddings = model.encode(keywords, batch_size=64, show_progress_bar=True, convert_to_tensor=True)
+    clusters = util.community_detection(corpus_embeddings, min_community_size=min_cluster_size, threshold=cluster_accuracy)
 
-        corpus_embeddings = model.encode(corpus_sentences, batch_size=256, show_progress_bar=True, convert_to_tensor=True)
-        clusters = util.community_detection(corpus_embeddings, min_community_size=min_cluster_size, threshold=cluster_accuracy)
+    for nr, cluster in enumerate(clusters):
+        for kw in cluster[:]:
+            cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
+            corpus_sentences_list.append(kw)
 
-        for keyword, cluster in enumerate(clusters):
-            for sentence_id in cluster[0:]:
-                corpus_sentences_list.append(corpus_sentences[sentence_id])
-                cluster_name_list.append("Cluster {}, #{} Elements ".format(keyword + 1, len(cluster)))
+    results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
 
-        df_new = pd.DataFrame(None)
-        df_new['Cluster Name'] = cluster_name_list
-        df_new["Keyword"] = corpus_sentences_list
+    excel_output(results)
+    st.table(results)
+    return 0
 
-        df_all.append(df_new)
-        have = set(df_new["Keyword"])
-        corpus_set = corpus_set_all - have
-        remaining = len(corpus_set)
+def clustering_semantic_kmeans(keywords, transformer = 'sdadas/st-polish-paraphrase-from-distilroberta', num_clusters = 5):
+    corpus_sentences_list =[]
+    cluster_name_list = []
 
-        if check_len == remaining:
-            break
-    # make a new dataframe from the list of dataframe and merge back into the orginal df
-    df_new = pd.concat(df_all)
+    model = SentenceTransformer(transformer)
+    corpus_embeddings = model.encode(keywords, batch_size=64)
+    clusterer = KMeans(n_clusters=num_clusters)
+    clusterer.fit(corpus_embeddings)
+    cluster_assignment = clusterer.labels_
 
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        df_all.to_excel(writer, sheet_name='clustered_kw')
-        writer.save()
-    st.download_button(label="Pobierz swoje wyniki",
-                       data=buffer,
-                       file_name="clustered_keywords.xlsx",
-                       mime="application/vnd.ms-excel")
+    clustered_sentences = [[] for i in range(num_clusters)]
+    for sentence_id, cluster_id in enumerate(cluster_assignment):
+        clustered_sentences[cluster_id].append(keywords[sentence_id])
 
-    st.table(df_new)
+    for nr, cluster in enumerate(clustered_sentences):
+        for kw in cluster[:]:
+            cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
+            corpus_sentences_list.append(kw)
 
+    results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
+
+    excel_output(results)
+    st.table(results)
+    return 0
+
+def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-paraphrase-from-distilroberta'):
+    corpus_sentences_list =[]
+    cluster_name_list = []
+    model = SentenceTransformer(transformer)
+    corpus_embeddings = model.encode(keywords, batch_size=64, show_progress_bar=True, convert_to_tensor=True)
+    clusterer = AgglomerativeClustering(n_clusters=None, distance_threshold=0.3)
+    clusterer.fit(corpus_embeddings)
+
+    clusters = clusterer.labels_
+    clustered_sentences = {}
+    for sentence_id, cluster_id in enumerate(clusters):
+        if cluster_id not in clustered_sentences:
+            clustered_sentences[cluster_id] = []
+
+        clustered_sentences[cluster_id].append(keywords[sentence_id])
+
+    for nr, cluster in enumerate(clustered_sentences):
+        for kw in cluster[:]:
+            cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
+            corpus_sentences_list.append(kw)
+
+    results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
+
+    excel_output(results)
+    st.table(results)
+    return 0

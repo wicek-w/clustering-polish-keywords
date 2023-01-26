@@ -26,25 +26,55 @@ with dataset:
 with model:
     if len(kw_input)>0:
         if nlp_type == "semantyka":
-            st.write("to może chwile potrwać, ale uwierz warto!")
-            accuracy = st.slider("Jak dokładny powino być grupowanie? (Im bliżej 100 tym bardziej restrykcyjne grupowanie): ", min_value=0, max_value=100)
-            min_cluster =st.number_input(label='Podaj minimalna liczbę klastrów: ', min_value=2)
-            results = f.clustering_semantic(kw_input, accuracy, min_cluster)
+            st.write("To może chwile potrwać, ale uwierz warto!")
+            clustering_type = st.selectbox("Wybierz metodę klasteryzacji: ",
+                                           options=["-",
+                                                    "aglomeracyjne dla dużych liczby fraz (od kilku do 50 tysięcy)",
+                                                    "aglomeracyjne",
+                                                    "k-means"],
+                                           index = 0)
+            model_type = st.selectbox("Choose a type of the algorithm to cluster your keywords",
+                                      options=["sdadas/st-polish-paraphrase-from-distilroberta",
+                                               "sentence-transformers/stsb-roberta-base-v2", "Voicelab/sbert-large-cased-pl"],
+                                      index = 0)
+
+            if clustering_type == 'aglomeracyjne':
+                if st.button('Zaczynajmy!'):
+                    f.clustering_semantic_agglomerative(kw_input,)
+            elif clustering_type == 'k-means':
+                nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
+                nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters
+                if st.button('Zaczynajmy!'):
+                    f.clustering_semantic_kmeans(kw_input, model_type, nr_clusters)
+            else:
+                accuracy = st.slider("Jak dokładny powino być grupowanie? (Im bliżej 100 tym bardziej restrykcyjne grupowanie): ", min_value=0, max_value=100)
+                min_cluster =st.number_input(label='Minimalna liczba fraz w grupie: ', min_value=2)
+                if st.button('Zaczynajmy!'):
+                    results = f.clustering_semantic_fast(kw_input, accuracy, min_cluster, model_type)
         else:
-            clustering_type = st.selectbox("Choose a type of the algorithm to cluster your keywords", options=["-", "k-means Tfidf", "DBSCAN", "GAACluster", "k-means NLTK"], index = 0)
+            clustering_type = st.selectbox("Wybierz metodę klasteryzacji: ", options=["-", "k-means Tfidf", "DBSCAN", "GAACluster", "k-means bag-of-words"], index = 0)
             distance = {'euklidesowa': 'euclidean',
                 'cosinusowa': 'cosine',
                 'cityblock': 'cityblock',
                 'manhattan': 'manhattan',
                 'levenshtein': 'lev_distance'}
-            normalization_type = st.selectbox("Jaką normalizację zastosować", options=["stemming", "lematyzacje"], index=0)
-            distance_type = st.selectbox("Jaką odległość chcesz wykorzystać", options=["euklidesowa", "cosinusowa","levenshtein"], index=0)
-            if clustering_type == "k-means NLTK":
+            normalization_type = st.selectbox("Jaką normalizację zastosować",
+                                              options=["stemming", "lematyzacje"],
+                                              index=0)
+            distance_type = st.selectbox("Jaką odległość chcesz wykorzystać",
+                                         options=["euklidesowa",
+                                                  "cosinusowa",
+                                                  "levenshtein"],
+                                         index=0)
+
+            if clustering_type == "k-means bag-of-words" and st.button('Zaczynajmy!'):
                 results = f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, distance_type=distance[distance_type], normalization_type=normalization_type)
             elif clustering_type == "DBSCAN":
                 min_cluster = st.number_input(label='Podaj minimalna liczbę klastrów:', min_value= 2)
-                results = f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, min_cluster= min_cluster, distance_type=distance[distance_type], normalization_type=normalization_type)
+                if st.button('Zaczynajmy!'):
+                    f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, min_cluster= min_cluster, distance_type=distance[distance_type], normalization_type=normalization_type)
             elif clustering_type in ["k-means Tfidf", "GAACluster"]:
                 nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
                 nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters
-                results = f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, nr_clusters=nr_clusters, normalization_type=normalization_type)
+                if st.button('Zaczynajmy!'):
+                    f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, nr_clusters=nr_clusters, normalization_type=normalization_type)

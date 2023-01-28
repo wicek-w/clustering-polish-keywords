@@ -45,14 +45,14 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
     tokenizer = stemming_tokenizer if normalization_type == 'stemming' else lemmatization_tokenizer
 
     if clustering_type == "k-means Tfidf":
-        tfidf_vectorizer = TfidfVectorizer(max_df=0.3, max_features=10000, min_df=0.01, stop_words=stopwords,
+        tfidf_vectorizer = TfidfVectorizer(max_df=0.5, max_features=10000, min_df=0.01, stop_words=stopwords,
                                            tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
         cluster = KMeans(n_clusters=nr_clusters,random_state=0).fit(tfidf).labels_.tolist()
         results = pd.DataFrame(sorted(zip(cluster, keywords)), columns=["cluster_id", "keyword"])
 
     elif clustering_type == "DBSCAN":
-        tfidf_vectorizer = TfidfVectorizer(max_df=0.3, max_features=10000, min_df=0.01, stop_words=stopwords,
+        tfidf_vectorizer = TfidfVectorizer(max_df=0.5, max_features=10000, min_df=0.01, stop_words=stopwords,
                                            tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
         cluster = DBSCAN(eps = sensivity, min_samples = min_cluster, metric = distance_type).fit(tfidf).labels_.tolist()

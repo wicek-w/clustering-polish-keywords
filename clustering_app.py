@@ -11,30 +11,30 @@ model = st.container()
 finish = st.container()
 
 with header:
-    st.title("Klasteryzacja fraz")
-    st.text("W tej aplikacji możesz sklasyfikować podane frazy za pomocą różnych algorytmów")
+    st.title("Klasteryzacja fraz w języku polskim")
+    st.text("W tej aplikacji możesz pogrupować podane frazy na różny sposób")
 
 with dataset:
     st.header("Podaj dane:")
     # input a keywords
-    kw_input = pd.DataFrame(st.text_area("Podaj listę fraz, które chcesz skatogeryzować (każda fraza powinna być w osobnej linijce:").split('\n'))
+    kw_input = pd.DataFrame(st.text_area("Podaj listę fraz, które chcesz pogrupować (każda fraza powinna być w osobnej linijce). Powinno być ich maksymalnie 10 tysięcy:").split('\n'))
     kw_input = kw_input[0].tolist()
     st.write(kw_input)
     if len(kw_input)>0:
-        nlp_type = st.selectbox("Na czym ma być oparta klasteryzacja?", options=["budowa słów", "semantyka"], index=0)
+        nlp_type = st.selectbox("Na czym ma być oparta klasteryzacja?", options=["-","budowa słów", "semantyka (kontekst)"], index=0)
 
 with model:
     if len(kw_input)>0:
-        if nlp_type == "semantyka":
+        if nlp_type == "semantyka (kontekst)":
             st.write("To może chwile potrwać, ale uwierz warto!")
             clustering_type = st.selectbox("Wybierz metodę klasteryzacji: ",
                                            options=["-",
-                                                    "aglomeracyjna dla dużych liczby fraz (od kilku do 50 tysięcy)",
+                                                    "aglomeracyjna dla dużych liczby fraz (od kilku do 50 tysięcy) - uwaga, ten algorytm działa trochę dłużej",
                                                     "aglomeracyjna",
                                                     "k-means",
                                                     "DBSCAN"],
                                            index = 0)
-            model_type = st.selectbox("Choose a type of the algorithm to cluster your keywords",
+            model_type = st.selectbox("Wybierz model na podstawie, którego powinny być sklasteryzowane Twoje frazy: ",
                                       options=["sdadas/st-polish-paraphrase-from-distilroberta",
                                                "sentence-transformers/stsb-roberta-base-v2", "Voicelab/sbert-large-cased-pl"],
                                       index = 0)
@@ -54,8 +54,6 @@ with model:
                                              index=0)
                 distance = {'euklidesowa': 'euclidean',
                         'cosinusowa': 'cosine',
-                        'cityblock': 'cityblock',
-                        'manhattan': 'manhattan',
                         'levenshtein': 'edit_distance'}
                 min_cluster = st.number_input(label='Podaj minimalna liczbę obserwacji w grupie:', min_value= 2)
                 if st.button('Zaczynajmy!'):
@@ -69,8 +67,6 @@ with model:
             clustering_type = st.selectbox("Wybierz metodę klasteryzacji: ", options=["-", "k-means Tfidf", "DBSCAN", "GAACluster", "k-means bag-of-words"], index = 0)
             distance = {'euklidesowa': 'euclidean',
                 'cosinusowa': 'cosine',
-                'cityblock': 'cityblock',
-                'manhattan': 'manhattan',
                 'levenshtein': 'lev'}
             normalization_type = st.selectbox("Jaką normalizację zastosować",
                                               options=["stemming", "lematyzacje"],

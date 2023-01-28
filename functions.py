@@ -16,6 +16,7 @@ buffer = BytesIO()
 stemmer = StempelStemmer.default()
 stopwords = (list(adv.stopwords['polish']))
 lemmatization_model = spacy.load("pl_core_news_sm")
+lemmatizer = lemmatization_model.get_pipe("lemmatizer")
 
 def stemming_tokenizer(phrases):
     words = word_tokenize(phrases)
@@ -25,7 +26,7 @@ def stemming_tokenizer(phrases):
 def lemmatization_tokenizer(phrases):
     # words = word_tokenize(phrases)
     words = lemmatization_model(phrases)
-    words = [word.lower().lemma_ for word in words]
+    words = [word.lemma_ for word in words]
     return words
 
 def excel_output(results) :
@@ -38,7 +39,9 @@ def excel_output(results) :
                    mime="application/vnd.ms-excel")
     return 0
 def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2, sensivity = 0.2, distance_type="euclidean", normalization_type ="lemmatization"):
+    print(keywords)
     keywords = list(filter(None, keywords))
+    print(keywords)
     tokenizer = stemming_tokenizer if normalization_type == 'stemming' else lemmatization_tokenizer
 
     if clustering_type == "k-means Tfidf":

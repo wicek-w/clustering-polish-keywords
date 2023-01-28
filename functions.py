@@ -20,7 +20,7 @@ lemmatizer = lemmatization_model.get_pipe("lemmatizer")
 
 def stemming_tokenizer(phrases):
     words = word_tokenize(phrases)
-    words = [stemmer.stem(word.lower()) for word in words]
+    words = [stemmer.stem(word) if stemmer.stem(word) is not None else word for word in words]
     return words
 
 def lemmatization_tokenizer(phrases):
@@ -39,9 +39,7 @@ def excel_output(results) :
                    mime="application/vnd.ms-excel")
     return 0
 def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2, sensivity = 0.2, distance_type="euclidean", normalization_type ="lemmatization"):
-    print(keywords)
     keywords = list(filter(None, keywords))
-    print(keywords)
     tokenizer = stemming_tokenizer if normalization_type == 'stemming' else lemmatization_tokenizer
 
     if clustering_type == "k-means Tfidf":

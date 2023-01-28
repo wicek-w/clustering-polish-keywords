@@ -11,12 +11,14 @@ from io import BytesIO
 import spacy
 from sentence_transformers import SentenceTransformer, util
 import xlsxwriter
+import nltk
 
 buffer = BytesIO()
 stemmer = StempelStemmer.default()
 stopwords = (list(adv.stopwords['polish']))
 lemmatization_model = spacy.load("pl_core_news_sm")
 lemmatizer = lemmatization_model.get_pipe("lemmatizer")
+nltk.download('punkt')
 
 def stemming_tokenizer(phrases):
     words = word_tokenize(phrases)

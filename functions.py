@@ -1,5 +1,6 @@
 import pandas as pd
-from nltk.cluster import KMeansClusterer, GAAClusterer, euclidean_distance, cosine_distance
+import numpy as np
+from nltk.cluster import GAAClusterer, euclidean_distance, cosine_distance, KMeansClusterer
 from nltk import word_tokenize
 import advertools as adv
 from stempel import StempelStemmer
@@ -11,7 +12,10 @@ from io import BytesIO
 import spacy
 from sentence_transformers import SentenceTransformer, util
 import xlsxwriter
+import scipy
 import nltk
+from sklearn.metrics.cluster import silhouette_score, adjusted_rand_score
+
 
 buffer = BytesIO()
 stemmer = StempelStemmer.default()
@@ -26,7 +30,6 @@ def stemming_tokenizer(phrases):
     return words
 
 def lemmatization_tokenizer(phrases):
-    # words = word_tokenize(phrases)
     words = lemmatization_model(phrases)
     words = [word.lemma_ for word in words]
     return words
@@ -40,22 +43,16 @@ def excel_output(results) :
                    file_name="clustered_keywords.xlsx",
                    mime="application/vnd.ms-excel")
     return 0
+
 def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2, sensivity = 0.2, distance_type="euclidean", normalization_type ="lemmatization"):
     keywords = list(filter(None, keywords))
     tokenizer = stemming_tokenizer if normalization_type == 'stemming' else lemmatization_tokenizer
 
-    if clustering_type == "k-means Tfidf":
+    if clustering_type == "DBSCAN":
         tfidf_vectorizer = TfidfVectorizer(max_df=0.5, max_features=10000, min_df=0.01, stop_words=stopwords,
                                            tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
-        cluster = KMeans(n_clusters=nr_clusters,random_state=0).fit(tfidf).labels_.tolist()
-        results = pd.DataFrame(sorted(zip(cluster, keywords)), columns=["cluster_id", "keyword"])
-
-    elif clustering_type == "DBSCAN":
-        tfidf_vectorizer = TfidfVectorizer(max_df=0.5, max_features=10000, min_df=0.01, stop_words=stopwords,
-                                           tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
-        tfidf = tfidf_vectorizer.fit_transform(keywords)
-        cluster = DBSCAN(eps = sensivity, min_samples = min_cluster, metric = distance_type).fit(tfidf).labels_.tolist()
+        cluster = DBSCAN(eps = sensivity, min_samples = min_cluster).fit(tfidf).labels_.tolist()
         results = pd.DataFrame(sorted(zip(cluster, keywords)), columns=["cluster_id", "keyword"])
 
     elif clustering_type == "GAACluster":
@@ -65,17 +62,24 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
         clusters = clusterer.cluster(bow)
         results = pd.DataFrame(sorted(zip(clusters, keywords)), columns=["cluster_id", "keyword"])
     else:
-        vectorizer = CountVectorizer(stop_words=stopwords, tokenizer=tokenizer)
-        bow = vectorizer.fit_transform(keywords)
-        if distance_type == "euclidean":
-            clusterer = KMeansClusterer(num_means=nr_clusters, distance=euclidean_distance, repeats=5)
-        elif distance_type == "cosine":
-            clusterer = KMeansClusterer(num_means=nr_clusters, distance=cosine_distance, repeats=5)
+        if clustering_type == "k-means Tfidf":
+            vectorizer = TfidfVectorizer(max_df=0.3, max_features=10000, min_df=0.008, stop_words=stopwords,
+                                               tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
+            vector = vectorizer.fit_transform(keywords)
+            vector = scipy.sparse.csr_matrix.toarray(vector)
         else:
-            clusterer = KMeansClusterer(num_means=nr_clusters, distance=edit_distance, repeats=5)
-
-        classified = clusterer.classify(bow)
-        results = pd.DataFrame(sorted(zip(classified, keywords)), columns=["cluster_id", "keyword"])
+            vectorizer = CountVectorizer(stop_words=stopwords, tokenizer=tokenizer)
+            vector = vectorizer.fit_transform(keywords)
+        clusterer = KMeansClusterer(num_means=nr_clusters, distance=euclidean_distance, repeats=20)
+        clusters = clusterer.cluster(vector)
+        # if distance_type == "euclidean":
+        #     clusterer = KMeansClusterer(num_means=nr_clusters, distance=euclidean_distance, repeats=20)
+        #     clusters = clusterer.cluster(vector)
+        # elif distance_type == "cosine":
+        #     clusters = KMeansClusterer(num_means=nr_clusters,distance=cosine_distance, repeats=20)
+        # else:
+        #     clusters = KMeansClusterer(num_means=nr_clusters,distance=edit_distance, repeats=20).classify(vector)
+        results = pd.DataFrame(sorted(zip(clusters, keywords)), columns=["cluster_id", "keyword"])
 
     excel_output(results)
     st.table(results)
@@ -96,6 +100,7 @@ def clustering_semantic_fast(keywords, cluster_accuracy = 80, min_cluster_size =
 
     results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
 
+    st.write(adjusted_rand_score(clusters, clusters))
     excel_output(results)
     st.table(results)
     return 0
@@ -152,12 +157,12 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
     st.table(results)
     return 0
 
-def clustering_semantic_dbscan(keywords, transformer = 'sdadas/st-polish-paraphrase-from-distilroberta', sensivity = 0.2, min_cluster=2, distance_type='euclidean'):
+def clustering_semantic_dbscan(keywords, transformer = 'sdadas/st-polish-paraphrase-from-distilroberta', min_cluster=2, distance_type='euclidean'):
     corpus_sentences_list =[]
     cluster_name_list = []
     model = SentenceTransformer(transformer)
     corpus_embeddings = model.encode(keywords, batch_size=256, show_progress_bar=True, convert_to_tensor=True)
-    clusterer = DBSCAN(eps = sensivity, min_samples = min_cluster, metric = distance_type)
+    clusterer = DBSCAN(eps = 5.5, min_samples = min_cluster, metric = distance_type)
     clusterer.fit(corpus_embeddings)
 
     clusters = clusterer.labels_

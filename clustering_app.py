@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import functions as f
 import io
+from nltk.metrics.distance import edit_distance
 
 buffer = io.BytesIO()
 header = st.container()
@@ -47,17 +48,9 @@ with model:
                 if st.button('Zaczynajmy!'):
                     f.clustering_semantic_kmeans(kw_input, model_type, nr_clusters)
             elif clustering_type == "DBSCAN":
-                distance_type = st.selectbox("Jaką odległość chcesz wykorzystać",
-                                             options=["euklidesowa",
-                                                      "cosinusowa",
-                                                      "levenshtein"],
-                                             index=0)
-                distance = {'euklidesowa': 'euclidean',
-                        'cosinusowa': 'cosine',
-                        'levenshtein': 'edit_distance'}
-                min_cluster = st.number_input(label='Podaj minimalna liczbę obserwacji w grupie:', min_value= 2)
+                min_cluster = st.number_input(label='Podaj minimalna liczbę obserwacji w grupie:', min_value=2)
                 if st.button('Zaczynajmy!'):
-                    f.clustering_semantic_dbscan(kw_input, model_type, min_cluster= min_cluster, distance_type=distance[distance_type])
+                    f.clustering_semantic_dbscan(kw_input, model_type, min_cluster= min_cluster)
             else:
                 accuracy = st.slider("Jak dokładny powino być grupowanie? (Im bliżej 100 tym bardziej restrykcyjne grupowanie): ", min_value=0, max_value=100)
                 min_cluster =st.number_input(label='Minimalna liczba fraz w grupie: ', min_value=2)
@@ -67,22 +60,25 @@ with model:
             clustering_type = st.selectbox("Wybierz metodę klasteryzacji: ", options=["-", "k-means Tfidf", "DBSCAN", "GAACluster", "k-means bag-of-words"], index = 0)
             distance = {'euklidesowa': 'euclidean',
                 'cosinusowa': 'cosine',
-                'levenshtein': 'lev'}
+                'levenshtein': 'edit_distance'}
             normalization_type = st.selectbox("Jaką normalizację zastosować",
                                               options=["stemming", "lematyzacje"],
                                               index=0)
-            distance_type = st.selectbox("Jaką odległość chcesz wykorzystać",
-                                         options=["euklidesowa",
-                                                  "cosinusowa",
-                                                  "levenshtein"],
-                                         index=0)
 
-            if clustering_type == "k-means bag-of-words" and st.button('Zaczynajmy!'):
-                results = f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, distance_type=distance[distance_type], normalization_type=normalization_type)
+            if clustering_type in ["k-means Tfidf", "k-means bag-of-words"]:
+                distance_type = st.selectbox("Jaką odległość chcesz wykorzystać",
+                                             options=["euklidesowa",
+                                                      "cosinusowa",
+                                                      "levenshtein"],
+                                             index=0)
+                nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
+                nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters
+                if st.button('Zaczynajmy!'):
+                    results = f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, nr_clusters=nr_clusters, distance_type=distance[distance_type], normalization_type=normalization_type)
             elif clustering_type == "DBSCAN":
                 min_cluster = st.number_input(label='Podaj minimalna liczbę obserwacji w grupie:', min_value= 2)
                 if st.button('Zaczynajmy!'):
-                    f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, min_cluster= min_cluster, distance_type=distance[distance_type], normalization_type=normalization_type)
+                    f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, min_cluster= min_cluster, normalization_type=normalization_type)
             elif clustering_type in ["k-means Tfidf", "GAACluster"]:
                 nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
                 nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters

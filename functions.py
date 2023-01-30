@@ -95,12 +95,20 @@ def clustering_semantic_fast(keywords, cluster_accuracy = 80, min_cluster_size =
 
     for nr, cluster in enumerate(clusters):
         for id in cluster[:]:
-            cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
+            cluster_name_list.append("Grupa {}, #{} Elementów ".format(nr + 1, len(cluster)))
             corpus_sentences_list.append(keywords[id])
 
-    results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
+    results = pd.DataFrame(sorted(zip(cluster_name_list,cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "cluster_name", "keyword"])
 
-    st.write(adjusted_rand_score(clusters, clusters))
+    results["length"] = results["keyword"].astype(str).map(len)
+    results = results .sort_values(by="length", ascending=True)
+
+    results['cluster_name'] = results.groupby('cluster_name')['keyword'].transform('first')
+    results.sort_values(['cluster_name', "keyword"], ascending=[True, True], inplace=True)
+
+    results['cluster_name'] = results['cluster_name'].fillna("ups! nie przypisano do żadnego klastra")
+
+    del results['length']
     excel_output(results)
     st.table(results)
     return 0
@@ -121,11 +129,20 @@ def clustering_semantic_kmeans(keywords, transformer = 'sdadas/st-polish-paraphr
 
     for nr, cluster in enumerate(clustered_sentences):
         for kw in cluster[:]:
-            cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
+            cluster_name_list.append("Grupa {}, #{} Elementów ".format(nr + 1, len(cluster)))
             corpus_sentences_list.append(kw)
 
-    results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
+    results = pd.DataFrame(sorted(zip(cluster_name_list,cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "cluster_name", "keyword"])
 
+    results["length"] = results["keyword"].astype(str).map(len)
+    results = results .sort_values(by="length", ascending=True)
+
+    results['cluster_name'] = results.groupby('cluster_name')['keyword'].transform('first')
+    results.sort_values(['cluster_name', "keyword"], ascending=[True, True], inplace=True)
+
+    results['cluster_name'] = results['cluster_name'].fillna("ups! nie przypisano do żadnego klastra")
+
+    del results['length']
     excel_output(results)
     st.table(results)
     return 0
@@ -148,11 +165,21 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
 
     for nr, cluster in clustered_sentences.items():
         for kw in cluster[:]:
-            cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
+            cluster_name_list.append("Grupa {}, #{} Elementów ".format(nr + 1, len(cluster)))
             corpus_sentences_list.append(kw)
 
-    results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
 
+    results = pd.DataFrame(sorted(zip(cluster_name_list,cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "cluster_name", "keyword"])
+
+    results["length"] = results["keyword"].astype(str).map(len)
+    results = results .sort_values(by="length", ascending=True)
+
+    results['cluster_name'] = results.groupby('cluster_name')['keyword'].transform('first')
+    results.sort_values(['cluster_name', "keyword"], ascending=[True, True], inplace=True)
+
+    results['cluster_name'] = results['cluster_name'].fillna("ups! nie przypisano do żadnego klastra")
+
+    del results['length']
     excel_output(results)
     st.table(results)
     return 0
@@ -175,11 +202,20 @@ def clustering_semantic_dbscan(keywords, transformer = 'sdadas/st-polish-paraphr
 
     for nr, cluster in clustered_sentences.items():
         for kw in cluster[:]:
-            cluster_name_list.append("Cluster {}, #{} Elements ".format(nr + 1, len(cluster)))
+            cluster_name_list.append("Grupa {}, #{} Elementów".format(nr + 1, len(cluster)))
             corpus_sentences_list.append(kw)
 
-    results = pd.DataFrame(sorted(zip(cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "keyword"])
+    results = pd.DataFrame(sorted(zip(cluster_name_list,cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "cluster_name", "keyword"])
 
+    results["length"] = results["keyword"].astype(str).map(len)
+    results = results .sort_values(by="length", ascending=True)
+
+    results['cluster_name'] = results.groupby('cluster_name')['keyword'].transform('first')
+    results.sort_values(['cluster_name', "keyword"], ascending=[True, True], inplace=True)
+
+    results['cluster_name'] = results['cluster_name'].fillna("ups! nie przypisano do żadnego klastra")
+
+    del results['length']
     excel_output(results)
     st.table(results)
     return 0

@@ -181,7 +181,7 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
     cluster_name_list = []
     model = SentenceTransformer(transformer)
     corpus_embeddings = model.encode(keywords, batch_size=256, show_progress_bar=True, convert_to_tensor=True)
-    clusterer = AgglomerativeClustering(n_clusters=None, distance_threshold=5)
+    clusterer = AgglomerativeClustering(n_clusters=None, distance_threshold=6.5)
     clusterer.fit(corpus_embeddings)
 
     clusters = clusterer.labels_

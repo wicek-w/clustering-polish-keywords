@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from nltk.cluster import GAAClusterer, euclidean_distance, cosine_distance, KMeansClusterer
+from nltk.cluster import GAAClusterer, KMeansClusterer, cosine_distance
 from nltk import word_tokenize
 import advertools as adv
 from stempel import StempelStemmer
@@ -56,14 +56,14 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
                                            tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
         clusters = DBSCAN(eps = sensivity, min_samples = min_cluster).fit(tfidf).labels_.tolist()
+        results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
 
     elif clustering_type == "GAACluster":
         clusterer = GAAClusterer(nr_clusters)
         vectorizer = CountVectorizer(stop_words=stopwords, tokenizer=tokenizer)
         bow = vectorizer.fit_transform(keywords)
         clusters = clusterer.cluster(bow)
-
-    # elif distance_type=='edit_distance':
+        results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
 
     else:
         if clustering_type == "k-means Tfidf":
@@ -81,7 +81,7 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
             clusters = KMeans(n_clusters=nr_clusters, random_state=20).fit_predict(vector)
             results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
         elif distance_type == "cosine":
-             clusters = KMeansClusterer(num_means=nr_clusters, distance=cosine_distance).cluster(vectorized_words_array)
+             clusters = KMeansClusterer(num_means=nr_clusters, distance=cosine_distance).cluster(vector)
              results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
         else:
             corpus_sentences_list =[]

@@ -71,6 +71,7 @@ with model:
                                                       "cosinusowa",
                                                       "levenshtein"],
                                              index=0)
+
                 nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
                 nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters
                 if st.button('Zaczynajmy!'):
@@ -79,7 +80,7 @@ with model:
                 min_cluster = st.number_input(label='Podaj minimalna liczbę obserwacji w grupie:', min_value= 2)
                 if st.button('Zaczynajmy!'):
                     f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, min_cluster= min_cluster, normalization_type=normalization_type)
-            elif clustering_type in ["k-means Tfidf", "GAACluster"]:
+            elif clustering_type in ["GAACluster"]:
                 nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
                 nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters
                 if st.button('Zaczynajmy!'):

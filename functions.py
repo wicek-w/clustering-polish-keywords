@@ -12,10 +12,8 @@ from io import BytesIO
 import spacy
 from sentence_transformers import SentenceTransformer, util
 import xlsxwriter
-import scipy
 import nltk
-from sklearn.metrics.cluster import silhouette_score, adjusted_rand_score
-
+from sklearn.preprocessing import normalize
 
 buffer = BytesIO()
 stemmer = StempelStemmer.default()
@@ -34,6 +32,11 @@ def lemmatization_tokenizer(phrases):
     words = [word.lemma_ for word in words]
     return words
 
+def similarity(phrases):
+    dist = np.array([[edit_distance(list(w1),list(w2)) for w1 in phrases] for w2 in phrases])
+    dist = -1*dist
+    return dist
+
 def excel_output(results) :
     with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
         results.to_excel(writer, sheet_name='clustered_kw')
@@ -49,38 +52,64 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
     tokenizer = stemming_tokenizer if normalization_type == 'stemming' else lemmatization_tokenizer
 
     if clustering_type == "DBSCAN":
-        tfidf_vectorizer = TfidfVectorizer(max_df=0.5, max_features=10000, min_df=0.01, stop_words=stopwords,
+        tfidf_vectorizer = TfidfVectorizer(max_df=0.5, max_features=20000, min_df=0.01, stop_words=stopwords,
                                            tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
-        cluster = DBSCAN(eps = sensivity, min_samples = min_cluster).fit(tfidf).labels_.tolist()
-        results = pd.DataFrame(sorted(zip(cluster, keywords)), columns=["cluster_id", "keyword"])
+        clusters = DBSCAN(eps = sensivity, min_samples = min_cluster).fit(tfidf).labels_.tolist()
 
     elif clustering_type == "GAACluster":
         clusterer = GAAClusterer(nr_clusters)
         vectorizer = CountVectorizer(stop_words=stopwords, tokenizer=tokenizer)
         bow = vectorizer.fit_transform(keywords)
         clusters = clusterer.cluster(bow)
-        results = pd.DataFrame(sorted(zip(clusters, keywords)), columns=["cluster_id", "keyword"])
+
+    # elif distance_type=='edit_distance':
+
     else:
         if clustering_type == "k-means Tfidf":
-            vectorizer = TfidfVectorizer(max_df=0.3, max_features=10000, min_df=0.008, stop_words=stopwords,
+            vectorizer = TfidfVectorizer(max_df=0.3, max_features=20000, min_df=0.008, stop_words=stopwords,
                                                tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
-            vector = vectorizer.fit_transform(keywords)
-            vector = scipy.sparse.csr_matrix.toarray(vector)
+            vectorizer.fit(keywords)
+            vector = vectorizer.transform(keywords)
         else:
             vectorizer = CountVectorizer(stop_words=stopwords, tokenizer=tokenizer)
-            vector = vectorizer.fit_transform(keywords)
-        clusterer = KMeansClusterer(num_means=nr_clusters, distance=euclidean_distance, repeats=20)
-        clusters = clusterer.cluster(vector)
-        # if distance_type == "euclidean":
-        #     clusterer = KMeansClusterer(num_means=nr_clusters, distance=euclidean_distance, repeats=20)
-        #     clusters = clusterer.cluster(vector)
-        # elif distance_type == "cosine":
-        #     clusters = KMeansClusterer(num_means=nr_clusters,distance=cosine_distance, repeats=20)
-        # else:
-        #     clusters = KMeansClusterer(num_means=nr_clusters,distance=edit_distance, repeats=20).classify(vector)
-        results = pd.DataFrame(sorted(zip(clusters, keywords)), columns=["cluster_id", "keyword"])
+            vectorizer.fit(keywords)
+            vector = vectorizer.transform(keywords)
+        vector_norm = normalize(vector)
+        vectorized_words_array = vector_norm.toarray()
+        if distance_type == "euclidean":
+            clusters = KMeans(n_clusters=nr_clusters, random_state=20).fit_predict(vector)
+            results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
+        elif distance_type == "cosine":
+             clusters = KMeansClusterer(num_means=nr_clusters, distance=cosine_distance).cluster(vectorized_words_array)
+             results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
+        else:
+            corpus_sentences_list =[]
+            cluster_name_list = []
+            distance = similarity(keywords)
+            clusterer = KMeans(n_clusters=nr_clusters)
+            clusterer.fit(distance)
+            cluster_assignment = clusterer.labels_
 
+            clustered_sentences = [[] for i in range(nr_clusters)]
+            for sentence_id, cluster_id in enumerate(cluster_assignment):
+                clustered_sentences[cluster_id].append(keywords[sentence_id])
+
+            for nr, cluster in enumerate(clustered_sentences):
+                for kw in cluster[:]:
+                    cluster_name_list.append("Grupa {}, #{} Elementów ".format(nr + 1, len(cluster)))
+                    corpus_sentences_list.append(kw)
+
+            results = pd.DataFrame(sorted(zip(cluster_name_list,cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "cluster_name", "keyword"])
+
+    results["length"] = results["keyword"].astype(str).map(len)
+    results = results .sort_values(by="length", ascending=True)
+
+    results['cluster_name'] = results.groupby('cluster_name')['keyword'].transform('first')
+    results.sort_values(['cluster_name', "keyword"], ascending=[True, True], inplace=True)
+
+    results['cluster_name'] = results['cluster_name'].fillna("ups! nie przypisano do żadnego klastra")
+    del results['length']
     excel_output(results)
     st.table(results)
     return 0
@@ -152,7 +181,7 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
     cluster_name_list = []
     model = SentenceTransformer(transformer)
     corpus_embeddings = model.encode(keywords, batch_size=256, show_progress_bar=True, convert_to_tensor=True)
-    clusterer = AgglomerativeClustering(n_clusters=None, distance_threshold=6)
+    clusterer = AgglomerativeClustering(n_clusters=None, distance_threshold=5)
     clusterer.fit(corpus_embeddings)
 
     clusters = clusterer.labels_

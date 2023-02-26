@@ -5,29 +5,32 @@ Dostępna aplikacja https://clustering-polish-keywords.streamlit.app/ pozwalają
 
 # Clustering Keywords in Polish
 
-This repository contains a Streamlit application for clustering keywords in Polish. Users can choose from various clustering methods based on keyword morphology or semantics.
+This repository contains a Streamlit application for clustering keywords in Polish. The application allows users to cluster keywords based on morphology or semantics, using various clustering algorithms and distance metrics.
 
 ## Methods Based on Keyword Morphology
 
-### KMeans with Bag-of-Words Vectorizing
+The following methods are available for clustering based on keyword morphology:
 
-This method clusters keywords using the KMeans algorithm and Bag-of-Words vectorization technique. Users can choose from Euclidean distance, Edit distance, or Cosine similarity as the distance metric.
+### KMeans with Bag-of-Words or TFIDF
 
-### KMeans with TFIDF Vectorizing
+This method clusters keywords using the KMeans algorithm and Bag-of-Words/TFIDF vectorization technique. Users can choose from Euclidean distance, Edit distance, or Cosine similarity as the distance metric.
 
-This method clusters keywords using the TFIDF vectorization technique. Users can choose from Euclidean distance, Edit distance, or Cosine similarity as the distance metric.
+The KMeans algorithm is a widely used clustering algorithm that partitions data into clusters based on similarity. The Bag-of-Words technique represents text data as a set of words, ignoring grammar and word order. The TFIDF (Term Frequency-Inverse Document Frequency) technique is a popular method for clustering text data based on their similarity. The technique assigns a weight to each word in the text, based on its frequency in the document and its frequency in the corpus. 
 
 ### DBSCAN
 
 This method clusters keywords using the DBSCAN algorithm.
 
+The DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm is a density-based clustering algorithm that groups together data points that are close to each other in space. This method is useful for clustering keywords that are closely related.
+
 ### GAACluster
 
 This method clusters keywords using the GAACluster algorithm.
 
-## Methods Based on Semantics
+GAACluster (Genetic Algorithm Agglomerative Clustering) is a hierarchical agglomerative clustering algorithm that uses genetic algorithms to determine the optimal clustering of data points. This method is useful for clustering keywords based on their morphology.
 
-Users can also choose clustering based on semantics using the following methods:
+## Methods Based on Semantics
+Semantic analysis is a technique that assigns a meaning to each word in the text, based on its context. This method is useful for clustering keywords based on their meaning. Users can  choose clustering based on semantics using the following methods:
 
 ### KMeans
 

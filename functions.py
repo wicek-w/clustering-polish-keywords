@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
-from nltk.cluster import GAAClusterer, KMeansClusterer, cosine_distance
+from nltk.cluster import GAAClusterer
 from nltk import word_tokenize
 import advertools as adv
 from stempel import StempelStemmer
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from nltk.metrics.distance import edit_distance
@@ -68,21 +70,18 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
     else:
         if clustering_type == "k-means Tfidf":
             vectorizer = TfidfVectorizer(max_df=0.3, max_features=20000, min_df=0.008, stop_words=stopwords,
-                                               tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
-            vectorizer.fit(keywords)
-            vector = vectorizer.transform(keywords)
+                                             tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
+            vector = vectorizer.fit_transform(keywords)
         else:
             vectorizer = CountVectorizer(stop_words=stopwords, tokenizer=tokenizer)
-            vectorizer.fit(keywords)
-            vector = vectorizer.transform(keywords)
-        vector_norm = normalize(vector)
-        vectorized_words_array = vector_norm.toarray()
+            vector = vectorizer.fit_transform(keywords)
         if distance_type == "euclidean":
             clusters = KMeans(n_clusters=nr_clusters, random_state=20).fit_predict(vector)
             results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
         elif distance_type == "cosine":
-             clusters = KMeansClusterer(num_means=nr_clusters, distance=cosine_distance).cluster(vector)
-             results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
+            similarity_matrix = cosine_similarity(vector)
+            clusters = KMeans(n_clusters=nr_clusters, random_state=20).fit_predict(similarity_matrix)
+            results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
         else:
             corpus_sentences_list =[]
             cluster_name_list = []

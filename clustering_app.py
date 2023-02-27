@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import functions as f
 import io
-from nltk.metrics.distance import edit_distance
 
 buffer = io.BytesIO()
 header = st.container()
@@ -41,7 +40,7 @@ with model:
                                       index = 0)
             if clustering_type == 'aglomeracyjna':
                 if st.button('Zaczynajmy!'):
-                    f.clustering_semantic_agglomerative(kw_input,)
+                    f.clustering_semantic_agglomerative(kw_input,model_type)
             elif clustering_type == 'k-means':
                 nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
                 nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters
@@ -57,7 +56,7 @@ with model:
                 if st.button('Zaczynajmy!'):
                     results = f.clustering_semantic_fast(kw_input, accuracy, min_cluster, model_type)
         else:
-            clustering_type = st.selectbox("Wybierz metodę klasteryzacji: ", options=["-", "k-means Tfidf", "DBSCAN", "GAACluster", "k-means bag-of-words"], index = 0)
+            clustering_type = st.selectbox("Wybierz metodę klasteryzacji: ", options=["-", "k-means Tfidf", "DBSCAN", "aglomeracyjna", "k-means bag-of-words"], index = 0)
             distance = {'euklidesowa': 'euclidean',
                 'cosinusowa': 'cosine',
                 'levenshtein': 'edit_distance'}
@@ -80,7 +79,7 @@ with model:
                 min_cluster = st.number_input(label='Podaj minimalna liczbę obserwacji w grupie:', min_value= 2)
                 if st.button('Zaczynajmy!'):
                     f.cluster_morphology(keywords=kw_input, clustering_type=clustering_type, min_cluster= min_cluster, normalization_type=normalization_type)
-            elif clustering_type in ["GAACluster"]:
+            elif clustering_type in ["aglomeracyjna"]:
                 nr_clusters = st.number_input(label='Podaj liczbę klastrów (domyślnie pierwiastek z liczby słów - jeśli chcesz by tak pozostało wybierz 1): ', min_value=1, key=2)
                 nr_clusters = int(math.sqrt(len(kw_input))) if nr_clusters == 1 else nr_clusters
                 if st.button('Zaczynajmy!'):

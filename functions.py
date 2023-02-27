@@ -4,7 +4,7 @@ from nltk.cluster import GAAClusterer
 from nltk import word_tokenize
 import advertools as adv
 from stempel import StempelStemmer
-from sklearn.feature_extraction.text import CountVectorizer
+# from sklearn.metrics import silhouette_score
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
@@ -58,13 +58,16 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
                                            tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
         tfidf = tfidf_vectorizer.fit_transform(keywords)
         clusters = DBSCAN(eps = sensivity, min_samples = min_cluster).fit(tfidf).labels_.tolist()
+        # silhouette_avg = silhouette_score(tfidf, clusters)
         results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
 
-    elif clustering_type == "GAACluster":
-        clusterer = GAAClusterer(nr_clusters)
-        vectorizer = CountVectorizer(stop_words=stopwords, tokenizer=tokenizer)
-        bow = vectorizer.fit_transform(keywords)
-        clusters = clusterer.cluster(bow)
+    elif clustering_type == "aglomeracyjna":
+        tfidf_vectorizer = TfidfVectorizer(max_df=0.5, max_features=20000, min_df=0.01, stop_words=stopwords,
+                                           tokenizer = tokenizer, use_idf=True, ngram_range=(1, 2))
+        vector = tfidf_vectorizer.fit_transform(keywords)
+        clusterer = AgglomerativeClustering(linkage='complete', n_clusters=nr_clusters)
+        clusters = clusterer.fit_predict(vector.toarray())
+        # silhouette_avg = silhouette_score(vector, clusters)
         results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
 
     else:
@@ -78,10 +81,12 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
         if distance_type == "euclidean":
             clusters = KMeans(n_clusters=nr_clusters, random_state=20).fit_predict(vector)
             results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
+            # silhouette_avg = silhouette_score(vector, clusters)
         elif distance_type == "cosine":
             similarity_matrix = cosine_similarity(vector)
             clusters = KMeans(n_clusters=nr_clusters, random_state=20).fit_predict(similarity_matrix)
             results = pd.DataFrame(sorted(zip(clusters, clusters, keywords)), columns=["cluster_id", "cluster_name", "keyword"])
+            # silhouette_avg = silhouette_score(similarity_matrix, clusters)
         else:
             corpus_sentences_list =[]
             cluster_name_list = []
@@ -89,7 +94,7 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
             clusterer = KMeans(n_clusters=nr_clusters)
             clusterer.fit(distance)
             cluster_assignment = clusterer.labels_
-
+            # silhouette_avg = silhouette_score(distance, cluster_assignment)
             clustered_sentences = [[] for i in range(nr_clusters)]
             for sentence_id, cluster_id in enumerate(cluster_assignment):
                 clustered_sentences[cluster_id].append(keywords[sentence_id])
@@ -106,7 +111,7 @@ def cluster_morphology(keywords, clustering_type, nr_clusters=1, min_cluster = 2
 
     results['cluster_name'] = results.groupby('cluster_name')['keyword'].transform('first')
     results.sort_values(['cluster_name', "keyword"], ascending=[True, True], inplace=True)
-
+    # st.write(silhouette_avg)
     results['cluster_name'] = results['cluster_name'].fillna("ups! nie przypisano do żadnego klastra")
     del results['length']
     excel_output(results)
@@ -128,6 +133,9 @@ def clustering_semantic_fast(keywords, cluster_accuracy = 80, min_cluster_size =
 
     results = pd.DataFrame(sorted(zip(cluster_name_list,cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "cluster_name", "keyword"])
 
+    # silhouette_avg = silhouette_score(corpus_embeddings, cluster_name_list)
+    # st.write(silhouette_avg)
+
     results["length"] = results["keyword"].astype(str).map(len)
     results = results .sort_values(by="length", ascending=True)
 
@@ -146,7 +154,7 @@ def clustering_semantic_kmeans(keywords, transformer = 'sdadas/st-polish-paraphr
     cluster_name_list = []
 
     model = SentenceTransformer(transformer)
-    corpus_embeddings = model.encode(keywords, batch_size=64)
+    corpus_embeddings = model.encode(keywords, batch_size=256)
     clusterer = KMeans(n_clusters=num_clusters)
     clusterer.fit(corpus_embeddings)
     cluster_assignment = clusterer.labels_
@@ -169,6 +177,9 @@ def clustering_semantic_kmeans(keywords, transformer = 'sdadas/st-polish-paraphr
     results.sort_values(['cluster_name', "keyword"], ascending=[True, True], inplace=True)
 
     results['cluster_name'] = results['cluster_name'].fillna("ups! nie przypisano do żadnego klastra")
+
+    # silhouette_avg = silhouette_score(corpus_embeddings, cluster_assignment)
+    # st.write(silhouette_avg)
 
     del results['length']
     excel_output(results)
@@ -199,6 +210,9 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
 
     results = pd.DataFrame(sorted(zip(cluster_name_list,cluster_name_list, corpus_sentences_list)), columns=["cluster_id", "cluster_name", "keyword"])
 
+    # silhouette_avg = silhouette_score(corpus_embeddings, clusters)
+    # st.write(silhouette_avg)
+
     results["length"] = results["keyword"].astype(str).map(len)
     results = results .sort_values(by="length", ascending=True)
 
@@ -212,12 +226,12 @@ def clustering_semantic_agglomerative(keywords, transformer = 'sdadas/st-polish-
     st.table(results)
     return 0
 
-def clustering_semantic_dbscan(keywords, transformer = 'sdadas/st-polish-paraphrase-from-distilroberta', min_cluster=2, distance_type='euclidean'):
+def clustering_semantic_dbscan(keywords, transformer = 'sdadas/st-polish-paraphrase-from-distilroberta', min_cluster=2):
     corpus_sentences_list =[]
     cluster_name_list = []
     model = SentenceTransformer(transformer)
     corpus_embeddings = model.encode(keywords, batch_size=256, show_progress_bar=True, convert_to_tensor=True)
-    clusterer = DBSCAN(eps = 5.5, min_samples = min_cluster, metric = distance_type)
+    clusterer = DBSCAN(eps = 5.5, min_samples = min_cluster)
     clusterer.fit(corpus_embeddings)
 
     clusters = clusterer.labels_
@@ -242,6 +256,9 @@ def clustering_semantic_dbscan(keywords, transformer = 'sdadas/st-polish-paraphr
     results.sort_values(['cluster_name', "keyword"], ascending=[True, True], inplace=True)
 
     results['cluster_name'] = results['cluster_name'].fillna("ups! nie przypisano do żadnego klastra")
+
+    # silhouette_avg = silhouette_score(corpus_embeddings, clusters)
+    # st.write(silhouette_avg)
 
     del results['length']
     excel_output(results)

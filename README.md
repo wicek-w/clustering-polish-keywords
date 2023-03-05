@@ -9,9 +9,9 @@ This repository contains a Streamlit application for clustering keywords in Poli
 
 ## Methods Based on Keyword Morphology
 
-The following methods are available for clustering based on keyword morphology:
+User can choose normalization of keywords - stemming or lemmatization. The following methods are available for clustering based on keyword morphology:
 
-### KMeans with Bag-of-Words or TFIDF
+### K-means with Bag-of-Words or TFIDF vectorization
 
 This method clusters keywords using the KMeans algorithm and Bag-of-Words/TFIDF vectorization technique. Users can choose from Euclidean distance, Edit distance, or Cosine similarity as the distance metric.
 
@@ -23,11 +23,9 @@ This method clusters keywords using the DBSCAN algorithm.
 
 The DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm is a density-based clustering algorithm that groups together data points that are close to each other in space. This method is useful for clustering keywords that are closely related.
 
-### GAACluster
+### Agglomerative Hierarchical
 
-This method clusters keywords using the GAACluster algorithm.
-
-GAACluster (Genetic Algorithm Agglomerative Clustering) is a hierarchical agglomerative clustering algorithm that uses genetic algorithms to determine the optimal clustering of data points. This method is useful for clustering keywords based on their morphology.
+This method clusters keywords using the Hierarchical algorithm to create number of clusters given by user.
 
 ## Methods Based on Semantics
 Semantic analysis is a technique that assigns a meaning to each word in the text, based on its context. This method is useful for clustering keywords based on their meaning. Users can  choose clustering based on semantics using the following methods:
@@ -40,7 +38,7 @@ This method clusters keywords using the KMeans algorithm and semantic analysis.
 
 This method clusters keywords using the DBSCAN algorithm and semantic analysis.
 
-### Hierarchical Agglomerative
+### Agglomerative Hierarchical 
 
 This method clusters keywords using the Hierarchical Agglomerative algorithm and semantic analysis.
 
